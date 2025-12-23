@@ -1,0 +1,145 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ooolala Share Market</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:0; }
+    .container { max-width: 1000px; margin: auto; padding: 20px; }
+    h1, h2 { text-align:center; }
+    .card { background:#020617; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 0 15px rgba(0,0,0,.5); }
+    input, select, button { padding:10px; border-radius:8px; border:none; margin:5px 0; }
+    button { background:#22c55e; color:#020617; cursor:pointer; font-weight:bold; }
+    button:hover { opacity:.9; }
+    .hidden { display:none; }
+    .stocks span { display:inline-block; background:#1e293b; padding:8px 12px; border-radius:20px; margin:5px; }
+    .profit { background:#16a34a !important; color:#fff; }
+    .leaderboard li { padding:8px; }
+    .top { background:#facc15; color:#000; font-weight:bold; border-radius:8px; }
+    .wheel { font-size:24px; text-align:center; padding:20px; background:#1e293b; border-radius:50%; width:200px; height:200px; margin:20px auto; display:flex; align-items:center; justify-content:center; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>📈 Ooolala Share Market</h1>  <!-- LOGIN -->  <div id="login" class="card">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>  <!-- APP -->  <div id="app" class="hidden"><div class="card">
+  <h2>🎡 Weekly Spin Wheel</h2>
+  <div class="wheel" id="wheel">Spin</div>
+  <button onclick="spinWheel()">Spin Wheel</button>
+  <p style="text-align:center">Tokens: <b id="tokens">0</b></p>
+</div>
+
+<div class="card">
+  <h2>📊 Stocks (Admin decides daily profit)</h2>
+  <div class="stocks" id="stocks"></div>
+</div>
+
+<div class="card">
+  <h2>🏆 Leaderboard</h2>
+  <ol class="leaderboard" id="leaderboard"></ol>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="card hidden">
+  <h2>🛠 Admin Panel</h2>
+  <select id="profitStock"></select>
+  <button onclick="setProfitStock()">Set Today's Profit Stock</button>
+</div>
+
+  </div>
+</div><script>
+  // DEMO STORAGE (local only)
+  let users = JSON.parse(localStorage.getItem('ooolala_users')) || {};
+  let stocks = ['TATA', 'RELIANCE', 'INFY', 'HDFC', 'WIPRO'];
+  let profitStock = localStorage.getItem('profitStock');
+  let currentUser = null;
+
+  const ADMIN_USER = 'admin';
+  const ADMIN_PASS = 'admin123';
+
+  function login() {
+    const u = username.value.trim();
+    const p = password.value.trim();
+    if (!u || !p) return alert('Enter username & password');
+
+    if (!users[u]) users[u] = { password: p, tokens: 0 };
+    if (users[u].password !== p) return alert('Wrong password');
+
+    currentUser = u;
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    if (u === ADMIN_USER && p === ADMIN_PASS) {
+      document.getElementById('adminPanel').classList.remove('hidden');
+    }
+
+    updateUI();
+  }
+
+  function spinWheel() {
+    // weekly check (simple demo: once per 7 days)
+    const lastSpin = users[currentUser].lastSpin || 0;
+    const now = Date.now();
+    if (now - lastSpin < 7 * 24 * 60 * 60 * 1000) {
+      return alert('Spin available only once a week');
+    }
+
+    const values = [10,20,30,50,100,200,500,1000];
+    const win = values[Math.floor(Math.random()*values.length)];
+    document.getElementById('wheel').innerText = win + ' Tokens';
+
+    users[currentUser].tokens += win;
+    users[currentUser].lastSpin = now;
+    save();
+    updateUI();
+  }
+
+  function setProfitStock() {
+    profitStock = document.getElementById('profitStock').value;
+    localStorage.setItem('profitStock', profitStock);
+    updateUI();
+  }
+
+  function updateUI() {
+    document.getElementById('tokens').innerText = users[currentUser].tokens;
+
+    // stocks
+    const stockDiv = document.getElementById('stocks');
+    stockDiv.innerHTML = '';
+    stocks.forEach(s => {
+      const sp = document.createElement('span');
+      sp.innerText = s;
+      if (s === profitStock) sp.classList.add('profit');
+      stockDiv.appendChild(sp);
+    });
+
+    // admin dropdown
+    const sel = document.getElementById('profitStock');
+    sel.innerHTML = '';
+    stocks.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.text = s;
+      sel.appendChild(o);
+    });
+
+    // leaderboard
+    const lb = document.getElementById('leaderboard');
+    lb.innerHTML = '';
+    const sorted = Object.entries(users).sort((a,b)=>b[1].tokens-a[1].tokens);
+    sorted.forEach(([name,data],i)=>{
+      const li = document.createElement('li');
+      li.innerText = name + ' - ' + data.tokens + ' tokens';
+      if (i===0) li.classList.add('top');
+      lb.appendChild(li);
+    });
+  }
+
+  function save(){
+    localStorage.setItem('ooolala_users', JSON.stringify(users));
+  }
+</script></body>
+</html>
